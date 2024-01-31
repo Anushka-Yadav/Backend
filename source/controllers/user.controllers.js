@@ -20,29 +20,32 @@ const registerUser= asyncHandler(async (req,res) => {
     // remove password and refresh token field from response
     // check for user creation
     // return res
-    const {fullname,email,userName} = req.body
-    console.log("email:",email);
+    const {fullname,email,password,userName} = req.body
+    console.log("email:",email,fullname,password,userName);
     if([fullname,userName,email,password].some((field)=> field?.trim()==="")){
         throw new ApiErr(400,"all field required")
     }
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{userName},{email}]
     })
     if(existedUser){
         throw new ApiErr(409,"username or email exist")
     }
-    const avatarLocalPath=req.files?.avatar[0]?.path;
-    const coverImageLocalPath=req.files?.coverImage[0]?.path;
-
-    if(!avatarLocalPath){
-        throw new ApiErr(400,"avatar required")
+    
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    console.log("Avatar local path:", avatarLocalPath);
+    if (!avatarLocalPath) {
+    throw new ApiErr(400, "avatar required");
     }
+    
+    const coverImageLocalPath=req.files?.coverImage[0]?.path;
+    
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
+    console.log("Avatar upload result:", avatar);
     if(!avatar) {
-        throw new ApiErr(400,"avatar required")
+        throw new ApiErr(400,"avatar img required")
     }
 
     const user = await User.create({
@@ -55,8 +58,7 @@ const registerUser= asyncHandler(async (req,res) => {
 
     })
 
-    const createdUser = await user.findById(user._id)
-    .select("-password -refreshToken")
+    const createdUser = await User.findById(user._id).select("-password -refreshToken")
 
     if(!createdUser){
         throw new ApiErr(500,"user registor error")
